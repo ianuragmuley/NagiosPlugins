@@ -1,1 +1,42 @@
-Test
+#!/bin/bash
+CRITICAL=2
+OK=0
+UNKNOWN=3
+usage() {
+ echo -e "Usage: $0 \n -i <IP_ADDRESS> \tProvide IP address (Mandatory)\n -p <PORT_NUMBER> \tProvide Port Number \n -h <help> \tDisplays this help message\n\n Example Usage: $0 -i 127.0.0.1 -p 22 " 1>&2;
+ exit 3;
+}
+
+while getopts "i:p:h:" option; do
+ case "${option}" in
+  i) IP_ADDRESS=${OPTARG};;
+  p) PORT=${OPTARG};;
+  h) usage;;
+  *) usage;;
+ esac
+done
+if [[ $# -eq 0 ]] ; then
+  usage
+  exit $UNKNOWN
+fi
+
+if [ -z "${IP_ADDRESS}" ]; then
+ echo "No IP Address To Test"
+ usage
+ exit $UNKNOWN
+fi
+
+if [ -z "${PORT}" ]; then
+ echo "No Port Number To Check"
+ usage
+ exit $UNKNOWN
+fi
+
+</dev/tcp/$IP_ADDRESS/$PORT
+if [ "$?" -ne 0 ]; then
+  echo "Connection to $IP_ADDRESS on port $PORT failed|Availability=0;;;;"
+  exit $CRITICAL
+else
+  echo "Connection to $IP_ADDRESS on port $PORT succeeded|Availability=1;;;;"
+  exit $OK
+fi
