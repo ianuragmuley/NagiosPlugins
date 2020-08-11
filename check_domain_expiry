@@ -1,0 +1,51 @@
+#!/bin/bash
+OK=0
+CRITICAL=2
+UNKNOWN=3
+usage() {
+ echo -e "Usage: $0 \n -d <DOMAIN> \tProvide domain (Mandatory)\n -t <THRESHOLD> \tProvide Threshold Count Of Days \n -h <help> \tDisplays this help message\n\n Example Usage: $0 -d example.com -t 10 " 1>&2;
+ exit 3;
+}
+
+while getopts "d:t:h:" option; do
+ case "${option}" in
+  d) DOMAIN=${OPTARG};;
+  t) THRESHOLD=${OPTARG};;
+  h) usage;;
+  *) usage;;
+ esac
+done
+if [[ $# -eq 0 ]] ; then
+  usage
+  exit $UNKNOWN
+fi
+
+if [ -z "${DOMAIN}" ]; then
+ echo "No Domain To Test"
+ usage
+ exit $UNKNOWN
+fi
+
+if [ -z "${THRESHOLD}" ]; then
+ echo "No Threshold Set"
+ usage
+ exit $UNKNOWN
+fi
+
+DOMAIN_EXP_DATE=$(curl -s cli.fyi/$DOMAIN | grep 'Registry Expiry Date' | awk -F": " '{print $2}' | sed 's/",$//' | awk -FT '{print $DOMAIN}')
+if [ -z "$DOMAIN_EXP_DATE" ]
+then
+      echo "Seems some issue with cli.fyi. Please execute this command :- curl -s cli.fyi/$DOMAIN"
+          exit $UNKNOWN
+fi
+TODAY_DATE=$(date +"%Y-%m-%d")
+EPOCH_URL_EXP_DATE=$(date +%s -d $DOMAIN_EXP_DATE)
+EPOCH_TODAY_DATE=$(date +%s -d $TODAY_DATE)
+let DIFF=("$EPOCH_URL_EXP_DATE"-"$EPOCH_TODAY_DATE")/86400
+if [ "$DIFF" -lt "$THRESHOLD" ];then
+  echo "CRITICAL : $DOMAIN is about to expire in $DIFF days on $DOMAIN_EXP_DATE";
+  exit $CRITICAL
+else
+  echo "OK : $DOMAIN is will expire in $DIFF days on $DOMAIN_EXP_DATE";
+  exit $OK
+fi
